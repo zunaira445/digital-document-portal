@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     const docType = await prisma.documentType.findUnique({
       where: { id },
@@ -25,12 +25,14 @@ export async function POST(
 
     await prisma.documentType.update({
       where: { id },
-      data: { isActive: !docType.isActive },
+      data: {
+        isActive: !docType.isActive,
+      },
     })
 
     return NextResponse.json({ message: "Status updated" })
   } catch (error) {
-    console.error("Toggle document type error:", error)
+    console.error(error)
     return NextResponse.json(
       { error: "Failed to update" },
       { status: 500 }
