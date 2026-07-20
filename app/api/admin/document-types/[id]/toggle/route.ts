@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await auth()
@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = await params
+    const { id } = params
 
     const docType = await prisma.documentType.findUnique({
       where: { id },
