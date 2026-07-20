@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  image         String?
+  phone         String?
+  address       String?
+  role          UserRole  @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  requests      DocumentRequest[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+model DocumentType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  requests    DocumentRequest[]
+}
+
+model DocumentRequest {
+  id              String        @id @default(cuid())
+  userId          String
+  documentTypeId  String
+  purpose         String
+  description     String?       @db.Text
+  urgency         UrgencyLevel  @default(NORMAL)
+  status          RequestStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType    DocumentType  @relation(fields: [documentTypeId], references: [id])
+  files           UploadedFile[]
+  statusHistory   RequestStatusHistory[]
+  notifications   Notification[]
+}
+
+enum UrgencyLevel {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum RequestStatus {
+  PENDING
+  UNDER_REVIEW
+  NEED_MORE_INFO
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model UploadedFile {
+  id        String   @id @default(cuid())
+  requestId String
+  fileName  String
+  fileUrl   String
+  fileType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+  
+  request   DocumentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model RequestStatusHistory {
+  id          String   @id @default(cuid())
+  requestId   String
+  status      RequestStatus
+  comment     String?  @db.Text
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  
+  request     DocumentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  requestId String?
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   DocumentRequest? @relation(fields: [requestId], references: [id])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
